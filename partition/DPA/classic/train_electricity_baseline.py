@@ -12,7 +12,6 @@ from sklearn.metrics import classification_report
 def parse_arguments():
     parser = argparse.ArgumentParser(description='train bank classifiers')
     parser.add_argument('--num_partition', default=20, type=int)
-    parser.add_argument('--overlap', default=0, type=int)
     parser.add_argument('--portion', default=0.05, type=float)
     parser.add_argument('--model', default='random', choices=['bayes', 'logistic', 'svm', 'random'])
     args = parser.parse_args()
@@ -24,7 +23,7 @@ def main(args):
     train_df = pd.read_csv(train_filename)
     test_filename = 'data/electricity/test.csv'
     test_df = pd.read_csv(test_filename)
-    partition_name = f'partitions/electricity/hash_portion{args.portion}_partition{args.num_partition}_overlap{args.overlap}.npy'
+    partition_name = f'partitions/electricity/hash_portion{args.portion}_partition{args.num_partition}.npy'
     idxgroup = np.load(partition_name, allow_pickle=True)
     df = pd.concat([train_df, test_df], axis=0, ignore_index=True)
     # print(df.tail())
@@ -104,8 +103,8 @@ def main(args):
     pred_labels = np.argmax(pred_votes, axis=1)
     print(f"Ensemble acc: {sum(labels==pred_labels)/10000:.4f}")
 
-    checkpoint_filename = f'checkpoints/electricity/model_{args.model}_partition_{args.num_partition}_portion_{args.portion}_overlap_{args.overlap}.pkl'
-    evaluation_filename = f'evaluations/electricity/model_{args.model}_partition_{args.num_partition}_portion_{args.portion}_overlap_{args.overlap}.pkl'
+    checkpoint_filename = f'checkpoints/electricity/model_{args.model}_partition_{args.num_partition}_portion_{args.portion}.pkl'
+    evaluation_filename = f'evaluations/electricity/model_{args.model}_partition_{args.num_partition}_portion_{args.portion}.pkl'
     with open(checkpoint_filename, 'wb') as file:
         pickle.dump(models, file)
     with open(evaluation_filename, 'wb') as file:

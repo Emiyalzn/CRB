@@ -7,10 +7,10 @@ import PIL
 parser = argparse.ArgumentParser(description='Partition Data')
 parser.add_argument('--dataset', default="fashionMnist", type=str, help='dataset to partition')
 parser.add_argument('--portion', default=0.005, type=float, help="subtrain set size")
-parser.add_argument('--overlap', default=0, type=int, help='train set overlap number')
 parser.add_argument('--partitions', default=50, type=int, help='number of partitions')
 args = parser.parse_args()
 channels = 3
+overlap = int(np.ceil(args.partitions/int(1/args.portion))) - 1
 if (args.dataset == "mnist"):
 	data = torchvision.datasets.MNIST(root='./data', train=True, download=True)
 	channels = 1
@@ -29,19 +29,19 @@ imgs, labels = zip(*data)
 finalimgs = torch.stack(list(map((lambda x: torchvision.transforms.ToTensor()(x)), list(imgs))))
 for_sorting = (finalimgs*255).int()
 
-idxgroup_final = None
-for time in range(args.overlap+1):
-    sort_list = (for_sorting.reshape(for_sorting.shape[0],-1).sum(dim=1)+time).numpy().tolist()
-    hash_sorting = torch.tensor(list(map(hash, sort_list)))
-    intmagessum = hash_sorting % int(1/args.portion*(args.overlap+1))
-    idxgroup = list([(intmagessum  == i).nonzero() for i in range(args.partitions)])
-    if idxgroup_final == None:
-        idxgroup_final = idxgroup
-    else:
-        idxgroup_final = list([torch.cat((idxgroup_final[i], idxgroup[i]), dim=0) for i in range(args.partitions)])
+idxgroup_final = []
+for time in range(overlap+1):
+	sort_list = (for_sorting.reshape(for_sorting.shape[0],-1).sum(dim=1)+time).numpy().tolist()
+	hash_sorting = torch.tensor(list(map(hash, sort_list)))
+	intmagessum = hash_sorting % int(1/args.portion)
+	if time != overlap:
+		idxgroup = list([(intmagessum  == i).nonzero() for i in range(int(1/args.portion))])
+	if time == overlap:
+		idxgroup = list([(intmagessum  == i).nonzero() for i in range(args.partitions - overlap*int(1/args.portion))])
+	idxgroup_final += idxgroup
 
 # idxgroup = list([(intmagessum  == i).nonzero() for i in range(args.partitions)])
-#force index groups into an order that depends only on image content  (not indexes) so that (deterministic) training will not depend initial indices
+# force index groups into an order that depends only on image content  (not indexes) so that (deterministic) training will not depend initial indices
 idxgroup = idxgroup_final
 idxgroup = list([idxgroup[i][np.lexsort(torch.cat((torch.tensor(labels)[idxgroup[i]].int(),for_sorting[idxgroup[i]].reshape(idxgroup[i].shape[0],-1)),dim=1).numpy().transpose())] for i in range(args.partitions) ])
 idxgroupout = list([x.squeeze().numpy() for x in idxgroup])

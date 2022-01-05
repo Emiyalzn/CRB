@@ -21,7 +21,8 @@ def data_cb(model, where):
             model._data.append([time.time() - model._start, cur_obj, cur_bd])
 
 
-def gurobi_search(num_consider, num_classifiers, num_classes, num_poison, overlap, numvotes, label, preds, time_limit, verbose):
+def gurobi_search(num_consider, num_classifiers, num_classes, num_poison, portion, numvotes, label, preds, time_limit, verbose):
+    overlap = int(np.ceil(num_classifiers/(1/portion)))-1
     m = gp.Model("attack")
 
     X = m.addVars(num_classifiers, vtype=gp.GRB.BINARY, name="X")
@@ -32,8 +33,11 @@ def gurobi_search(num_consider, num_classifiers, num_classes, num_poison, overla
     m.setObjective(gp.quicksum(Y[i]
                    for i in range(num_consider)), gp.GRB.MAXIMIZE)
 
-    m.addConstr(gp.quicksum(X[i]
-                for i in range(num_classifiers)) <= num_poison*(overlap+1))
+    for i in range(overlap+1):
+        if i != overlap:
+            m.addConstr(gp.quicksum(X[j] for j in range(i*int(1/portion), (i+1)*int(1/portion))) <= num_poison)
+        else:
+            m.addConstr(gp.quicksum(X[j] for j in range(overlap*int(1/portion),num_classifiers)) <= num_poison)
 
     # print(numvotes)
     new_true_votes = []
@@ -85,8 +89,6 @@ def parse_arguments():
                         help='Test number of partitions.')
     parser.add_argument('--num_poison', default=1,
                         type=int, help='poison budget.')
-    parser.add_argument('--overlap', default=0,
-                        type=int, help='partition overlap.')
     parser.add_argument('--portion', default=0.05,
                         type=float, help="data for every partition")
     parser.add_argument('--model', default="bayes",
@@ -99,6 +101,7 @@ def parse_arguments():
 
 def main(args):
     print(args)
+    overlap = int(np.ceil(args.num_partition/int(1/args.portion))) - 1
     out_dir = os.path.join(args.out, args.dataset+'partition'+str(args.num_partition),
                            args.mode)
     if not os.path.exists(out_dir):
@@ -106,7 +109,7 @@ def main(args):
     
     num_classes = 2
     filein = np.load(f"evaluations/{args.dataset}/model_{args.model}_partition_{args.num_partition}"
-                     f"_portion_{args.portion}_overlap_{args.overlap}.pkl", allow_pickle=True)
+                     f"_portion_{args.portion}.pkl", allow_pickle=True)
     labels = np.array(filein[0])
     preds = np.array(filein[1:])
 
@@ -126,14 +129,14 @@ def main(args):
     scale = 10000
     print(f"================num_poison: {num_poison}==================")
     list_params = prepare_param(mode=args.mode, preds=preds, 
-                                labels=labels, num_poison=num_poison, num_classes=args.num_classes, overlap=args.overlap, scale=scale)
+                                labels=labels, num_poison=num_poison, num_classes=args.num_classes, overlap=overlap, scale=scale)
     
     num_unattacked_col = num_total
     (num_consider, new_numvotes, new_label, new_preds) = list_params[0]
     obj, upper_bound, A = gurobi_search(num_consider=num_consider, num_classifiers=args.num_partition, num_classes=args.num_classes, num_poison=num_poison,
-                                        overlap=args.overlap, numvotes=new_numvotes, label=new_label, preds=new_preds, 
+                                        portion=args.portion, numvotes=new_numvotes, label=new_label, preds=new_preds, 
                                         time_limit=600, verbose=False)
-    print(f"objective: {math.floor(upper_bound)}, gap: {(num_consider-math.floor(upper_bound))/num_consider:.4f}")
+    print(f"num_consider:{num_consider}, objective: {math.floor(upper_bound)}, gap: {(num_consider-math.floor(upper_bound))/num_consider:.4f}")
         
 
 if __name__ == '__main__':

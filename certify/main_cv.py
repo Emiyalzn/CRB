@@ -21,7 +21,8 @@ def data_cb(model, where):
             model._data.append([time.time() - model._start, cur_obj, cur_bd])
 
 
-def gurobi_search(num_consider, num_classifiers, num_classes, num_poison, overlap, numvotes, label, preds, time_limit, verbose):
+def gurobi_search(num_consider, num_classifiers, num_classes, num_poison, portion, numvotes, label, preds, time_limit, verbose):
+    overlap = int(np.ceil(num_classifiers/(1/portion)))-1
     m = gp.Model("attack")
 
     X = m.addVars(num_classifiers, vtype=gp.GRB.BINARY, name="X")
@@ -33,8 +34,11 @@ def gurobi_search(num_consider, num_classifiers, num_classes, num_poison, overla
     m.setObjective(gp.quicksum(Y[i]
                    for i in range(num_consider)), gp.GRB.MAXIMIZE)
 
-    m.addConstr(gp.quicksum(X[i]
-                for i in range(num_classifiers)) <= num_poison*(overlap+1))
+    for i in range(overlap+1):
+        if i != overlap:
+            m.addConstr(gp.quicksum(X[j] for j in range(i*int(1/portion), (i+1)*int(1/portion))) <= num_poison)
+        else:
+            m.addConstr(gp.quicksum(X[j] for j in range(overlap*int(1/portion),num_classifiers)) <= num_poison)
 
     new_true_votes = []
     new_votes = [[] for _ in range(num_consider)]
@@ -95,8 +99,6 @@ def parse_arguments():
                         type=float, help="Gurobi's solution time limit.")
     parser.add_argument('--num_classes', default=10,
                         type=int, help='number of classes.')
-    parser.add_argument('--overlap', default=0,
-                        type=int, help="partition overlap.")
     parser.add_argument('--portion', default=0.005,
                         type=float, help='data for every partition')
     parser.add_argument('--out', type=str, default='/home/crx/collective/out')
@@ -111,6 +113,7 @@ def main(args):
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
+    overlap = int(np.ceil(args.num_partition/int(1/args.portion)))-1
     filein = torch.load(
         f'/home/crx/collective/evaluations/{args.dataset}_nin_baseline_partitions_{args.num_partition}_portion_{args.portion}.pth', map_location='cpu')
     labels = filein['labels']
@@ -147,7 +150,7 @@ def main(args):
         num_unattacked_col = num_total
         for i, (num_consider, new_numvotes, new_label, new_preds) in enumerate(list_params[:]):
             obj, upper_bound, A = gurobi_search(num_consider=num_consider, num_classifiers=args.num_partition, num_classes=args.num_classes, num_poison=num_poison,
-                                                overlap=args.overlap, numvotes=new_numvotes, label=new_label, preds=new_preds, time_limit=scale*args.t_persample, verbose=False)
+                                                portion=args.portion, numvotes=new_numvotes, label=new_label, preds=new_preds, time_limit=scale*args.t_persample, verbose=False)
             num_attacked = math.floor(upper_bound)
             num_unattacked_col -= num_attacked
             print(num_unattacked_col)
@@ -178,12 +181,12 @@ def main(args):
                                              preds=preds, labels=labels, num_poison=num_poison, num_classes=args.num_classes)
             y1.append(num_unattacked_sam)
             list_params = prepare_param(mode=args.mode, preds=preds, 
-                                    labels=labels, num_poison=num_poison, num_classes=args.num_classes, overlap=args.overlap, scale=scale)
+                                    labels=labels, num_poison=num_poison, num_classes=args.num_classes, overlap=overlap, scale=scale)
 
             num_unattacked_col = num_total
             for i, (num_consider, new_numvotes, new_label, new_preds) in enumerate(list_params[:]):
                 obj, upper_bound, A = gurobi_search(num_consider=num_consider, num_classifiers=args.num_partition, num_classes=args.num_classes, num_poison=num_poison,
-                                                    overlap=args.overlap, numvotes=new_numvotes, label=new_label, preds=new_preds, time_limit=scale*args.t_persample, verbose=True)
+                                                    portion=args.portion, numvotes=new_numvotes, label=new_label, preds=new_preds, time_limit=scale*args.t_persample, verbose=True)
                 num_attacked = math.floor(upper_bound)
                 num_unattacked_col -= num_attacked
 

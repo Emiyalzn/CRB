@@ -143,7 +143,7 @@ def main(args):
         scale = args.scale if args.scale is not None else 50+5*args.num_poison
         print(f"================num_poison: {num_poison}==================")
         num_unattacked_sam = DPA_certify(mode=args.mode,
-                                         preds=preds, labels=labels, num_poison=num_poison, num_classes=args.num_classes)
+                                         preds=preds, labels=labels, num_poison=num_poison, num_classes=args.num_classes, overlap=overlap)
         list_params = prepare_param(mode=args.mode, preds=preds, 
                                     labels=labels, num_poison=num_poison, num_classes=args.num_classes, overlap=args.overlap, scale=scale)
 
@@ -178,7 +178,7 @@ def main(args):
             scale = args.scale if args.scale is not None else 50+5*args.num_poison
             print(f"================num_poison: {num_poison}==================")
             num_unattacked_sam = DPA_certify(mode=args.mode,
-                                             preds=preds, labels=labels, num_poison=num_poison, num_classes=args.num_classes)
+                                             preds=preds, labels=labels, num_poison=num_poison, num_classes=args.num_classes, overlap=overlap)
             y1.append(num_unattacked_sam)
             list_params = prepare_param(mode=args.mode, preds=preds, 
                                     labels=labels, num_poison=num_poison, num_classes=args.num_classes, overlap=overlap, scale=scale)

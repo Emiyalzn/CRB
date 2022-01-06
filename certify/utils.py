@@ -81,7 +81,7 @@ def rob_budget(num_trainset, num_poison, num_select):
     return ra
 
 
-def DPA_certify(mode, preds, labels, num_poison, num_classes):
+def DPA_certify(mode, preds, labels, num_poison, num_classes, overlap):
     num_data = preds.shape[1]
     numvotes = np.zeros((num_data, num_classes))
     for preds_subclassifer in preds:
@@ -89,7 +89,7 @@ def DPA_certify(mode, preds, labels, num_poison, num_classes):
     idxsort = np.argsort(-numvotes, axis=1, kind='stable')
     valsort = -np.sort(-numvotes, axis=1, kind='stable')
     rob = np.floor(
-        ((valsort[:, 0]-valsort[:, 1] - (idxsort[:, 1] < idxsort[:, 0]))/2))
+        ((valsort[:, 0]-valsort[:, 1] - (idxsort[:, 1] < idxsort[:, 0]))/(2*(overlap+1))))
     is_rob = (rob >= num_poison)
 
     if mode == 'ca':

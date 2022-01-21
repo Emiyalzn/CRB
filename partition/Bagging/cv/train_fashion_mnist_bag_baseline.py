@@ -14,13 +14,14 @@ import os
 import argparse
 import numpy as np
 import random
+import pickle
 
 NUM_TRAIN_SAMPLES = 60000
 channels = 1
 
 parser = argparse.ArgumentParser(description='Fashion MNIST Training')
 parser.add_argument('--num_partitions', default=50, type=int, help='number of partitions')
-parser.add_argument('--num_classifiers', default=1000, type=int, help='number of classifiers')
+parser.add_argument('--num_classifiers', default=50, type=int, help='number of classifiers')
 
 args = parser.parse_args()
 
@@ -41,6 +42,7 @@ num_samples = int(NUM_TRAIN_SAMPLES / args.num_partitions)
 data = torchvision.datasets.FashionMNIST(root='./data', train=True, download=True)
 imgs, labels = zip(*data)
 finalimgs = torch.stack(list(map((lambda x: torchvision.transforms.ToTensor()(x)), list(imgs))))
+train_dict = {i:[] for i in range(NUM_TRAIN_SAMPLES)}
 
 for i in range(args.num_classifiers):
     print('\Classifier: %d' % i)
@@ -51,7 +53,10 @@ for i in range(args.num_classifiers):
     torch.cuda.manual_seed_all(seed)
     curr_lr = 0.1
 
-    part_indices = torch.tensor(np.random.choice(NUM_TRAIN_SAMPLES, num_samples, False))
+    idxgroup = np.random.choice(NUM_TRAIN_SAMPLES, num_samples, False)
+    for j in idxgroup:  
+        train_dict[j].append(i)
+    part_indices = torch.tensor(idxgroup)
     mean = finalimgs[part_indices.unsqueeze(1)].permute(2,0,1,3,4).reshape(channels,-1).mean(dim=1).numpy()
     std = finalimgs[part_indices.unsqueeze(1)].permute(2,0,1,3,4).reshape(channels,-1).std(dim=1).numpy()
 
@@ -112,8 +117,12 @@ for i in range(args.num_classifiers):
         'acc': acc,
         'partition': i,
         'norm_mean' : mean,
-        'norm_std' : std
+        'norm_std' : std,
     }
     torch.save(state, checkpoint_subdir + '/partition_'+ str(i)+'.pth')
+
+train_dict_file = f'train_dict/fashion_mnist/bag_partition_{args.num_partitions}.pkl'
+with open(train_dict_file, 'wb') as file:
+    pickle.dump(train_dict, file)
 
 

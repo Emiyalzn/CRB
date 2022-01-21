@@ -11,7 +11,7 @@ TRAIN_SIZE = 35211
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='train bank classifiers')
-    parser.add_argument('--num_partition', default=1000, type=int)
+    parser.add_argument('--num_partition', default=20, type=int)
     parser.add_argument('--portion', default=0.05, type=float)
     args = parser.parse_args()
     return args
@@ -24,6 +24,12 @@ def main(args):
     test_df = pd.read_csv(test_filename)
     df = pd.concat([train_df, test_df], axis=0, ignore_index=True)
     idxgroup = np.random.choice(TRAIN_SIZE, size=(args.num_partition, int(TRAIN_SIZE*args.portion)))
+    train_dict = {i:[] for i in range(TRAIN_SIZE)}
+    
+    for i in range(TRAIN_SIZE):
+        for j in range(args.num_partition):
+            if i in idxgroup[j]:
+                train_dict[i].append(j)
 
     # preprocessing data
     i = df[(df['poutcome'] == 'unknown') & (df['pdays'] != -1)].index
@@ -89,6 +95,7 @@ def main(args):
         pickle.dump(models, file)
     with open(evaluation_filename, 'wb') as file:
         pickle.dump(y_preds, file)
+        pickle.dump(train_dict, file)
 
 if __name__ == '__main__':
     main(parse_arguments())

@@ -8,7 +8,6 @@ def array_split_bysize(a, size, axis):
     idx_split = np.arange(size, a.shape[axis], size)
     return np.split(a, idx_split, axis=axis)
 
-
 def prepare_param(mode, preds, labels, num_poison, num_classes, overlap=0, scale=None):
     """
     Generate the convex optimization describing the collective certificate.

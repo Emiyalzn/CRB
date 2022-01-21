@@ -163,7 +163,7 @@ def main(args):
                                             time_limit=args.t_persample*scale, verbose=args.verbose)
         num_attacked = math.floor(obj)
         num_unattacked_col -= num_attacked
-    print(f"num_consider:{num_total}, objective: {obj}, gap: {(num_total-math.floor(upper_bound))/num_total:.4f}")
+    print(f"num_consider:{num_total}, objective: {num_unattacked_col}, gap: {(num_total-math.floor(num_unattacked_col))/num_total:.4f}")
         
 
 if __name__ == '__main__':

@@ -18,9 +18,10 @@ import numpy
 import random
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR Training')
-parser.add_argument('--num_partitions', default = 1000, type=int, help='number of partitions')
+parser.add_argument('--num_partitions', default = 50, type=int, help='number of partitions')
 parser.add_argument('--start_partition', required=True, type=int, help='partition number')
-parser.add_argument('--num_partition_range', default=250, type=int, help='number of partitions to train')
+parser.add_argument('--portion', default=0.005, type=float, help='subtrain set size')
+parser.add_argument('--num_partition_range', default=50, type=int, help='number of partitions to train')
 parser.add_argument('--zero_seed', action='store_true', help='Use a random seed of zero (instead of the partition index)')
 
 args = parser.parse_args()
@@ -36,7 +37,7 @@ if (args.zero_seed):
 checkpoint_dir = 'checkpoints'
 if not os.path.exists('./checkpoints'):
     os.makedirs('./checkpoints')
-checkpoint_subdir = f'./{checkpoint_dir}/' + dirbase + f'_partitions_{args.num_partitions}'
+checkpoint_subdir = f'./{checkpoint_dir}/' + dirbase + f'_partitions_{args.num_partitions}_portion_{args.portion}'
 if not os.path.exists(checkpoint_subdir):
     os.makedirs(checkpoint_subdir)
 print("==> Checkpoint directory", checkpoint_subdir)
@@ -48,7 +49,7 @@ start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 print('==> Preparing data..')
 
 
-partitions_file = torch.load('partitions_hash_mean_cifar_'+str(args.num_partitions)+'.pth')
+partitions_file = torch.load('partitions_hash_mean_cifar_'+str(args.num_partitions)+'_'+str(args.portion)+'.pth')
 partitions = partitions_file['idx']
 means = partitions_file['mean']
 stds = partitions_file['std']

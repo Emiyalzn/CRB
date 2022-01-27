@@ -17,22 +17,27 @@ import argparse
 import numpy
 import random
 
-parser = argparse.ArgumentParser(description='PyTorch FashionMNIST Training')
-parser.add_argument('--num_partitions', default = 1200, type=int, help='number of partitions')
+parser = argparse.ArgumentParser(description='PyTorch FMNIST Training')
+parser.add_argument('--num_partitions', default = 50, type=int, help='number of partitions')
 parser.add_argument('--start_partition', required=True, type=int, help='partition number')
-parser.add_argument('--num_partition_range', default=300, type=int, help='number of partitions to train')
+parser.add_argument('--portion', default=0.005, type=float, help='subtrain set size')
+parser.add_argument('--num_partition_range', default=50, type=int, help='number of partitions to train')
 parser.add_argument('--zero_seed', action='store_true', help='Use a random seed of zero (instead of the partition index)')
 
 args = parser.parse_args()
 
-dirbase = 'fashion_mnist_nin_baseline'
+
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+
+dirbase = 'fashion_nin_baseline'
 if (args.zero_seed):
     dirbase += '_zero_seed'
 
 checkpoint_dir = 'checkpoints'
 if not os.path.exists('./checkpoints'):
     os.makedirs('./checkpoints')
-checkpoint_subdir = f'./{checkpoint_dir}/' + dirbase + f'_partitions_{args.num_partitions}'
+checkpoint_subdir = f'./{checkpoint_dir}/' + dirbase + f'_partitions_{args.num_partitions}_portion_{args.portion}'
 if not os.path.exists(checkpoint_subdir):
     os.makedirs(checkpoint_subdir)
 print("==> Checkpoint directory", checkpoint_subdir)
@@ -42,10 +47,9 @@ start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 
 # Data
 print('==> Preparing data..')
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
 
-partitions_file = torch.load('partitions_hash_mean_fashionMnist_'+str(args.num_partitions)+'.pth')
+
+partitions_file = torch.load('partitions_hash_mean_fashionMnist_'+str(args.num_partitions)+'_'+str(args.portion)+'.pth')
 partitions = partitions_file['idx']
 means = partitions_file['mean']
 stds = partitions_file['std']

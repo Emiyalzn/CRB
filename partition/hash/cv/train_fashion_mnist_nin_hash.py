@@ -17,7 +17,7 @@ import argparse
 import numpy
 import random
 
-parser = argparse.ArgumentParser(description='PyTorch CIFAR Training')
+parser = argparse.ArgumentParser(description='PyTorch FMNIST Training')
 parser.add_argument('--num_partitions', default = 50, type=int, help='number of partitions')
 parser.add_argument('--start_partition', required=True, type=int, help='partition number')
 parser.add_argument('--portion', default=0.005, type=float, help='subtrain set size')
@@ -30,7 +30,7 @@ args = parser.parse_args()
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
-dirbase = 'cifar_nin_baseline'
+dirbase = 'fashion_nin_hash'
 if (args.zero_seed):
     dirbase += '_zero_seed'
 
@@ -49,7 +49,7 @@ start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 print('==> Preparing data..')
 
 
-partitions_file = torch.load('partitions_hash_mean_cifar_'+str(args.num_partitions)+'_'+str(args.portion)+'.pth')
+partitions_file = torch.load('partitions_hash_mean_fashionMnist_'+str(args.num_partitions)+'_'+str(args.portion)+'.pth')
 partitions = partitions_file['idx']
 means = partitions_file['mean']
 stds = partitions_file['std']
@@ -65,12 +65,12 @@ for part in range(args.start_partition,args.start_partition+args.num_partition_r
     numpy.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
+
     curr_lr = 0.1
     print('\Partition: %d' % part)
     part_indices = torch.tensor(partitions[part])
     transform_train = transforms.Compose([
-        transforms.RandomCrop(32, padding=4),
-        transforms.RandomHorizontalFlip(),
+        transforms.RandomCrop(28, padding=4),
         transforms.ToTensor(),
         transforms.Normalize(means[part], stds[part])
     ])
@@ -80,13 +80,13 @@ for part in range(args.start_partition,args.start_partition+args.num_partition_r
         transforms.Normalize(means[part], stds[part])
     ])
 
-    trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform_train)
-    testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_test)
+    trainset = torchvision.datasets.FashionMNIST(root='./data', train=True, download=True, transform=transform_train)
+    testset = torchvision.datasets.FashionMNIST(root='./data', train=False, download=True, transform=transform_test)
 
     nomtestloader = torch.utils.data.DataLoader(testset, batch_size=128, shuffle=True, num_workers=1)
     print('here')
     trainloader = torch.utils.data.DataLoader(torch.utils.data.Subset(trainset,part_indices), batch_size=128, shuffle=True, num_workers=1)
-    net  = NetworkInNetwork({'num_classes':10})
+    net  = NetworkInNetwork({'num_classes':10, 'num_inchannels': 1})
     net = net.to(device)
 
     criterion = nn.CrossEntropyLoss()

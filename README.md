@@ -13,12 +13,14 @@ We implement the certification for Vanilla and Hash Bagging (as mentioned in the
     This will create `partitions_hash_mean_cifar_50_0.02.pth` under `partition/hash/cv`.
 - Then, we train the subclassifiers and make predictions on the test set:
     ```shell
-    python ./partition/hash/cv/train_cifar_nin_baseline.py --num_partitions 50 --start_partition 0 --num_partitions_range 50 --portion 0.02
-    python ./partition/hash/cv/evaluate_cifar_nin_baseline.py --models cifar_nin_baseline_partitions_50_portion_0.02
+    python ./partition/hash/cv/train_cifar_nin_hash.py --num_partitions 50 --start_partition 0 --num_partitions_range 50 --portion 0.02
+    python ./partition/hash/cv/evaluate_cifar_nin_hash.py --models cifar_nin_hash_partitions_50_portion_0.02
     ```
-    This will create `cifar_nin_baseline_partitions_50_portion_0.02.pth` under `partition/hash/cv/evaluations`.
-- We move the evaluation file under `./certify/evaluations` (create the directory beforehand), then we can run the certification:
+    This will create `cifar_nin_hash_partitions_50_portion_0.02.pth` under `partition/hash/cv/evaluations`.
+- Move the evaluation file under `./certify/evaluations` (create the directory beforehand), then we can run the certification:
     ```shell
     python ./certify/main_cv_hash.py rob cifar 50 --portion 0.02 --num_poison xx --scale xx 
     ```
     This will give the collective robustness we want based on Gurobi.
+
+CV datasets can be downloaded automatically in our codes. However, for the classic datasets, you need to download the .csv files online artificially (the urls have been listed in the paper).

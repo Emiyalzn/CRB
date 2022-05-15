@@ -1,4 +1,4 @@
-Official implementation for ICML22: **On Collective Robustness of Bagging Against Data Poisoning**.
+Official implementation for **On Collective Robustness of Bagging Against Data Poisoning**, which has been accepted for a short presentation in **ICML'22**🤗!!!
 
 For the environment, We use python3.7, PyTorch, and torchvision, and assume CUDA capabilities. In addition, we need **gurobipy** since we formulate the certification process as a BILP problem.
 
